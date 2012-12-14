@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# A tool to import a NaCl source tree into subnacl/, fixing symbol names.
+# Written by Brian Warner https://github.com/warner as part of PyNaCl.
+# PyNaCl is released under version 2.0 of the Apache license.
 
 import os, sys, re, shutil, codecs
 open = codecs.open
