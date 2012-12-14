@@ -2,6 +2,7 @@
 # A tool to import a NaCl source tree into subnacl/, fixing symbol names.
 # Written by Brian Warner https://github.com/warner as part of PyNaCl.
 # PyNaCl is released under version 2.0 of the Apache license.
+# Modified by tonygarnockjones@gmail.com to emit S-expression definitions as well.
 
 import os, sys, re, shutil, codecs
 open = codecs.open
@@ -18,6 +19,8 @@ def lines(*path):
     return [line.strip() for line in open(join(NACL, *path),"r")]
 
 MACROS = lines("MACROS")
+
+sexpdefs = open(join(OUTPUT, "sexpdefs.ss"), "w")
 
 for op in lines("OPERATIONS"):
     assert op.startswith("crypto_")
@@ -97,12 +100,16 @@ for op in lines("OPERATIONS"):
         for line in open(join(impldir, "api.h"), "r").readlines():
             line = line.replace("CRYPTO_", "%s_%s_" % (op, prim))
             out.write(line)
+            line = line.replace("#define", "(define-constant").strip() + ")\n"
+            sexpdefs.write(line)
         for line in open(join(NACL, "PROTOTYPES.c"), "r").readlines():
             if ("%s(" % op) in line or ("%s_" % op) in line:
                 line = line.replace(op, "%s_%s" % (op, prim))
                 out.write(line)
         out.write('#define %s_%s_IMPLEMENTATION "%s/%s/%s"\n'
                   % (op, prim, op, prim, preferred))
+        sexpdefs.write('(define-implementation %s %s "%s")\n'
+                       % (op, prim, preferred))
         out.write('#define %s_%s_VERSION "-"\n' % (op, prim))
         out.write("\n")
         out.write("#endif\n")
@@ -121,6 +128,7 @@ for op in lines("OPERATIONS"):
             for m in op_macros:
                 m_prim = m.replace(op, "%s_%s" % (op,prim))
                 out.write('#define %s %s\n' % (m, m_prim))
+                sexpdefs.write('(define-alias %s %s)\n' % (m, m_prim))
             out.write('#define %s_PRIMITIVE "%s"\n' % (op, prim))
             out.write('#define %s_IMPLEMENTATION %s_%s_IMPLEMENTATION\n'
                       % (op, op, prim))
@@ -128,6 +136,12 @@ for op in lines("OPERATIONS"):
             out.write("\n")
             out.write("#endif\n")
             out.close()
+
+        sexpdefs.write('\n')
+
+sexpdefs.write('(define-nacl-version "%s")\n' %
+               (open(join(NACL, "version"), "r").read().strip(),))
+sexpdefs.close()
 
 # create a few more include files
 out = open(join(INCLUDE, "randombytes.h"), "w")
