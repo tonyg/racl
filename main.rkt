@@ -4,6 +4,7 @@
 (require ffi/unsafe)
 (require ffi/unsafe/define)
 (require racket/include)
+(require setup/dirs)
 
 (provide random-bytes
 
@@ -23,7 +24,13 @@
 
 ;;---------------------------------------------------------------------------
 
-(define nacl-lib (ffi-lib "nacl"))
+(define (local-lib-dirs)
+  (list* "."
+	 (with-handlers ((exn:fail? (lambda (e) ".")))
+	   (collection-path "racl"))
+	 (get-lib-search-dirs)))
+
+(define nacl-lib (ffi-lib "nacl" #:get-lib-dirs local-lib-dirs))
 
 (define-ffi-definer define-nacl nacl-lib
   #:default-make-fail make-not-available)
