@@ -1,5 +1,6 @@
 #lang racket/base
 
+(require openssl/sha1)
 (require racket/match)
 (require "main.rkt")
 
@@ -16,6 +17,9 @@
 (define-values (pk1 sk1)
   (values (hex-string->bytes #"de1042928b74e9f96cf3f3e290c16cb4eba9c696e9a1e15c7f4d0514ddce1154")
 	  (hex-string->bytes #"d54ff4b666a43070ab20937a92c49ecf65503583f8942350fc197c5023b015c3")))
+
+(define pk1-hash (sha1 (open-input-bytes pk1)))
+(check-equal? pk1-hash "69dcd04f5dfcda764b8920a90daac0e74495f6b2")
 
 (match-define (crypto-box-keypair pk2 sk2) (make-crypto-box-keypair))
 
