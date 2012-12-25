@@ -73,7 +73,7 @@
 (define (make-crypto-box-keypair)
   (define pk (make-bytes crypto_box_PUBLICKEYBYTES))
   (define sk (make-bytes crypto_box_SECRETKEYBYTES))
-  (check-result (crypto_box_curve25519xsalsa20poly1305_keypair pk sk))
+  (check-result (crypto_box_keypair pk sk))
   (crypto-box-keypair pk sk))
 
 (define (crypto-box-random-nonce)
