@@ -16,9 +16,10 @@
     (bytes-set! bs i (string->number (substring cleaned (* i 2) (+ 2 (* i 2))) 16)))
   bs)
 
-(define-values (pk1 sk1)
-  (values (hex-string->bytes #"de1042928b74e9f96cf3f3e290c16cb4eba9c696e9a1e15c7f4d0514ddce1154")
-	  (hex-string->bytes #"d54ff4b666a43070ab20937a92c49ecf65503583f8942350fc197c5023b015c3")))
+(define (iota-bytes count)
+  (define bs (make-bytes count))
+  (for ((i (in-range count))) (bytes-set! bs i i))
+  bs)
 
 ;;---------------------------------------------------------------------------
 ;; Hashing
@@ -39,7 +40,29 @@
 	       #"c6c7ed9cf205e67b7f2b8fd4c7dfd3a7a8617e45f3c463d481c7e586c39ac1ed"))
 
 ;;---------------------------------------------------------------------------
+;; Symmetric-key encryption
+
+(check-equal? (crypto-stream 16
+			     (iota-bytes crypto_stream_NONCEBYTES)
+			     (iota-bytes crypto_stream_KEYBYTES))
+	      (hex-string->bytes #"7C B6 60 AF DD 9E C6 46 8F 57 DD 6D 24 33 F9 34"))
+
+(check-equal? (crypto-stream-xor #"Hello, world!!!!"
+				 (iota-bytes crypto_stream_NONCEBYTES)
+				 (iota-bytes crypto_stream_KEYBYTES))
+	      (hex-string->bytes #"34D30CC3B2B2E631E025B1090512D815"))
+
+(check-equal? (crypto-stream-xor (hex-string->bytes #"34D30CC3B2B2E631E025B1090512D815")
+				 (iota-bytes crypto_stream_NONCEBYTES)
+				 (iota-bytes crypto_stream_KEYBYTES))
+	      #"Hello, world!!!!")
+
+;;---------------------------------------------------------------------------
 ;; Boxing
+
+(define-values (pk1 sk1)
+  (values (hex-string->bytes #"de1042928b74e9f96cf3f3e290c16cb4eba9c696e9a1e15c7f4d0514ddce1154")
+	  (hex-string->bytes #"d54ff4b666a43070ab20937a92c49ecf65503583f8942350fc197c5023b015c3")))
 
 (define pk1-hash (sha1 (open-input-bytes pk1)))
 (check-equal? pk1-hash "69dcd04f5dfcda764b8920a90daac0e74495f6b2")
