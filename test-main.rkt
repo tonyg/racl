@@ -58,6 +58,32 @@
 	      #"Hello, world!!!!")
 
 ;;---------------------------------------------------------------------------
+;; One-time authentication
+
+(check-equal? (crypto-onetimeauth #"Hello, world!!!!" (iota-bytes crypto_onetimeauth_KEYBYTES))
+	      (hex-string->bytes #"C3 F6 82 F3 4C C6 29 FA 85 3A 4A DF 57 8D 7A 1F"))
+
+(check-equal? (crypto-onetimeauth-verify
+	       (hex-string->bytes #"C3 F6 82 F3 4C C6 29 FA 85 3A 4A DF 57 8D 7A 1F")
+	       #"Hello, world!!!!"
+	       (iota-bytes crypto_onetimeauth_KEYBYTES))
+	      #t)
+
+;;---------------------------------------------------------------------------
+;; Authentication
+
+(check-equal? (crypto-auth #"Hello, world!!!!" (iota-bytes crypto_auth_KEYBYTES))
+	      (hex-string->bytes
+	       #"723E07B01AA6766473ED6D433F75E41CB0C524ED607814C16DC24B3E9A0D7AC4"))
+
+(check-equal? (crypto-auth-verify
+	       (hex-string->bytes
+		#"723E07B01AA6766473ED6D433F75E41CB0C524ED607814C16DC24B3E9A0D7AC4")
+	       #"Hello, world!!!!"
+	       (iota-bytes crypto_auth_KEYBYTES))
+	      #t)
+
+;;---------------------------------------------------------------------------
 ;; Boxing
 
 (define-values (pk1 sk1)
