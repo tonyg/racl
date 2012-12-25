@@ -6,8 +6,10 @@
 
 (require rackunit)
 
-(define (hex-string->bytes str) ;; grumble
-  (define cleaned (bytes->string/utf-8 (regexp-replace* #rx"[^0-9a-fA-F]+" str "")))
+(define (hex-string->bytes . strs) ;; grumble
+  (define cleaned (bytes->string/utf-8 (regexp-replace* #rx"[^0-9a-fA-F]+"
+							(apply bytes-append strs)
+							"")))
   (define count (/ (string-length cleaned) 2))
   (define bs (make-bytes count 0))
   (for ((i (in-range count)))
@@ -17,6 +19,27 @@
 (define-values (pk1 sk1)
   (values (hex-string->bytes #"de1042928b74e9f96cf3f3e290c16cb4eba9c696e9a1e15c7f4d0514ddce1154")
 	  (hex-string->bytes #"d54ff4b666a43070ab20937a92c49ecf65503583f8942350fc197c5023b015c3")))
+
+;;---------------------------------------------------------------------------
+;; Hashing
+
+(check-equal? (crypto-hash-bytes #"")
+	      (hex-string->bytes
+	       #"cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce"
+	       #"47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"))
+
+(check-equal? (crypto-hash-bytes #"The quick brown fox jumps over the lazy dog")
+	      (hex-string->bytes
+	       #"07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb64"
+	       #"2e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6"))
+
+(check-equal? (crypto-hash-bytes #"The quick brown fox jumps over the lazy dog.")
+	      (hex-string->bytes
+	       #"91ea1245f20d46ae9a037a989f54f1f790f0a47607eeb8a14d12890cea77a1bb"
+	       #"c6c7ed9cf205e67b7f2b8fd4c7dfd3a7a8617e45f3c463d481c7e586c39ac1ed"))
+
+;;---------------------------------------------------------------------------
+;; Boxing
 
 (define pk1-hash (sha1 (open-input-bytes pk1)))
 (check-equal? pk1-hash "69dcd04f5dfcda764b8920a90daac0e74495f6b2")
