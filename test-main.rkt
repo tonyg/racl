@@ -121,6 +121,22 @@
 	       pks)
 	      #"Hello, world")
 
+(check-exn (regexp "error from nacl primitive")
+	   (lambda ()
+	     (crypto-sign-open
+	      (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
+				 #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
+				 #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200D") ;; !
+	      pks)))
+
+;;---------------------------------------------------------------------------
+;; Signing with seeded keypair generation.
+
+(let ((keys (bytes->crypto-sign-keypair #"This is my passphrase"))
+      (signed-message #"\216\346t\266\306@_Ay\335\306\262\1\32\342\261\365\361e\347\r\262\361btWU\215\340K\230\370Hello, world\240\234\332\375\242i)\214\264#\230\244\213U\236\325\333-\374\177\205.\311\3728{\357xR\321\356\r"))
+  (check-equal? (crypto-sign #"Hello, world" (crypto-sign-keypair-sk keys)) signed-message)
+  (check-equal? (crypto-sign-open signed-message (crypto-sign-keypair-pk keys)) #"Hello, world"))
+
 ;;---------------------------------------------------------------------------
 ;; Boxing
 
