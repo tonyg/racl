@@ -102,6 +102,26 @@
 	      #"Meet in the old churchyard at midnight.")
 
 ;;---------------------------------------------------------------------------
+;; Signing
+
+(define-values (pks sks)
+  (values (hex-string->bytes #"64297b264b6efc31d180ef0d841f46abd9d7cf5d5018ae24ce7b68d7e725e68a")
+	  (hex-string->bytes #"40ca85ca169cf2b0770455af7b93bde81dea1bd2c92db4400f3c1362c352ad67"
+			     #"6c4a21d2daadf7b951380cfdcd867a29092d129233496dc8c3ef593d277c52a2")))
+
+(check-equal? (crypto-sign #"Hello, world" sks)
+	      (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
+				 #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
+				 #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200C"))
+
+(check-equal? (crypto-sign-open
+	       (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
+				  #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
+				  #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200C")
+	       pks)
+	      #"Hello, world")
+
+;;---------------------------------------------------------------------------
 ;; Boxing
 
 (define-values (pk1 sk1)
