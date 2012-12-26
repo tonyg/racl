@@ -84,6 +84,24 @@
 	      #t)
 
 ;;---------------------------------------------------------------------------
+;; Authenticated symmetric-key encryption
+
+(check-equal? (crypto-secretbox #"Meet in the old churchyard at midnight."
+				(iota-bytes crypto_secretbox_NONCEBYTES)
+				(iota-bytes crypto_secretbox_KEYBYTES))
+	      (hex-string->bytes
+	       #"01440C4518408578F1348926E058E82B139A5D3BE7A3CC30CF54EA1E07E32EB7"
+	       #"31CD33ADEF4D468E65C647F521E7CC88E7B59CB22DC4DB"))
+
+(check-equal? (crypto-secretbox-open
+	       (hex-string->bytes
+		#"01440C4518408578F1348926E058E82B139A5D3BE7A3CC30CF54EA1E07E32EB7"
+		#"31CD33ADEF4D468E65C647F521E7CC88E7B59CB22DC4DB")
+	       (iota-bytes crypto_secretbox_NONCEBYTES)
+	       (iota-bytes crypto_secretbox_KEYBYTES))
+	      #"Meet in the old churchyard at midnight.")
+
+;;---------------------------------------------------------------------------
 ;; Boxing
 
 (define-values (pk1 sk1)
