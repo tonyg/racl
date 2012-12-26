@@ -133,7 +133,10 @@
 ;; Signing with seeded keypair generation.
 
 (let ((keys (bytes->crypto-sign-keypair #"This is my passphrase"))
-      (signed-message #"\216\346t\266\306@_Ay\335\306\262\1\32\342\261\365\361e\347\r\262\361btWU\215\340K\230\370Hello, world\240\234\332\375\242i)\214\264#\230\244\213U\236\325\333-\374\177\205.\311\3728{\357xR\321\356\r"))
+      (signed-message (hex-string->bytes
+		       #"8ee674b6c6405f4179ddc6b2011ae2b1f5f165e70db2f162"
+		       #"7457558de04b98f848656c6c6f2c20776f726c64a09cdafd"
+		       #"a269298cb42398a48b559ed5db2dfc7f852ec9fa387bef7852d1ee0d")))
   (check-equal? (crypto-sign #"Hello, world" (crypto-sign-keypair-sk keys)) signed-message)
   (check-equal? (crypto-sign-open signed-message (crypto-sign-keypair-pk keys)) #"Hello, world"))
 
