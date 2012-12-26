@@ -11,7 +11,10 @@ NACLUNPACKED=nacl-$(NACLVERSION)
 all: $(SHAREDLIB)
 
 $(SHAREDLIB): subnacl
-	raco ctool ++ldf "-I" ++ldf "subnacl/include" --ld $@ `find subnacl -name '*.c'`
+	raco ctool ++ldf "-I" ++ldf "subnacl/include" \
+		--ld $@ \
+		`find subnacl -name '*.c'` \
+		keys.c
 
 clean:
 	rm -f $(SHAREDLIB)
