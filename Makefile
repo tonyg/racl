@@ -11,7 +11,9 @@ NACLUNPACKED=nacl-$(NACLVERSION)
 all: $(SHAREDLIB)
 
 $(SHAREDLIB): subnacl
-	raco ctool ++ldf "-I" ++ldf "subnacl/include" \
+	raco ctool \
+		++ldf "-O3" ++ldf "-fomit-frame-pointer" ++ldf "-funroll-loops" \
+		++ldf "-I" ++ldf "subnacl/include" \
 		--ld $@ \
 		`find subnacl -name '*.c'` \
 		keys.c
