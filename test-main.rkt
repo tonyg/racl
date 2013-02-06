@@ -152,6 +152,13 @@
 
 (match-define (crypto-box-keypair pk2 sk2) (make-crypto-box-keypair))
 
+(match-define (crypto-box-keypair pk-anon sk-anon)
+  (bytes->crypto-box-keypair #""))
+
+(write `((pk-anon ,(bytes->hex-string pk-anon))
+	 (sk-anon ,(bytes->hex-string sk-anon))))
+(newline)
+
 (let ((nonce (hex-string->bytes #"065114ca5a687e0544a88e6fc757b30afc70a0355854fd54"))
       (c (hex-string->bytes #"3bc95b7983622e8afb763723703e17c6739be9c316"))
       (k (crypto-box-precompute pk1 sk1)))
