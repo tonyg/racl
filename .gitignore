@@ -1,0 +1,6 @@
+compiled/
+scratch/
+nacl.a
+nacl.dylib
+nacl-20110221/
+subnacl/
