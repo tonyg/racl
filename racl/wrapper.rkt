@@ -301,4 +301,4 @@
 (define-stub crypto_stream_afternm crypto_stream_xsalsa20_afternm) ;; Missing from upstream
 (define-stub crypto_stream_xor_afternm crypto_stream_xsalsa20_xor_afternm) ;; Missing from upstream
 
-(include "subnacl/sexpdefs.ss")
+(include "private/subnacl/sexpdefs.ss")

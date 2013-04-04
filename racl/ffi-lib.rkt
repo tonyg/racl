@@ -18,12 +18,13 @@
 ;; FFI
 
 (define (local-lib-dirs)
-  (list* "."
-	 (with-handlers ((exn:fail? (lambda (e) ".")))
-	   (collection-path "racl"))
-	 (get-lib-search-dirs)))
+  (list (build-path (collection-path "racl")
+		    "private"
+		    "compiled"
+		    "native"
+		    (system-library-subpath))))
 
-(define nacl-lib (ffi-lib "nacl" #:get-lib-dirs local-lib-dirs))
+(define nacl-lib (ffi-lib "racl-nacl" #:get-lib-dirs local-lib-dirs))
 
 (define-ffi-definer define-nacl nacl-lib
   #:default-make-fail make-not-available)

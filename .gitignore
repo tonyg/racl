@@ -1,6 +1,4 @@
 compiled/
 scratch/
-nacl.a
-nacl.dylib
-nacl-20110221/
-subnacl/
+racl/private/nacl-20110221/
+racl/private/subnacl/

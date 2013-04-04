@@ -1,30 +1,16 @@
-ifeq ($(shell uname -s),Darwin)
-SHEXT=dylib
-else
-SHEXT=so
-endif
+COLLECTIONS=racl
 
-SHAREDLIB=nacl.$(SHEXT)
-NACLVERSION=20110221
-NACLUNPACKED=nacl-$(NACLVERSION)
-
-all: $(SHAREDLIB)
-
-$(SHAREDLIB): subnacl
-	raco ctool \
-		++ldf "-O3" ++ldf "-fomit-frame-pointer" ++ldf "-funroll-loops" \
-		++ldf "-I" ++ldf "subnacl/include" \
-		--ld $@ \
-		`find subnacl -name '*.c'` \
-		keys.c
+all: setup
 
 clean:
-	rm -f $(SHAREDLIB)
-	rm -rf subnacl
-	rm -rf $(NACLUNPACKED)
+	find . -name compiled -type d | xargs rm -rf
+	rm -rf racl/private/subnacl
 
-subnacl: import.py $(NACLUNPACKED)
-	python import.py $(NACLUNPACKED)
+setup:
+	raco setup $(COLLECTIONS)
 
-$(NACLUNPACKED): $(NACLUNPACKED).tar.bz2
-	tar -jxvf $<
+link:
+	raco pkg install --link $$(pwd)
+
+unlink:
+	raco pkg remove $$(basename $$(pwd))
