@@ -105,28 +105,28 @@
 ;; Signing
 
 (define-values (pks sks)
-  (values (hex-string->bytes #"64297b264b6efc31d180ef0d841f46abd9d7cf5d5018ae24ce7b68d7e725e68a")
-	  (hex-string->bytes #"40ca85ca169cf2b0770455af7b93bde81dea1bd2c92db4400f3c1362c352ad67"
-			     #"6c4a21d2daadf7b951380cfdcd867a29092d129233496dc8c3ef593d277c52a2")))
+  (values (hex-string->bytes #"cfdfa9d055a2f69b8828d7aca7bae0256d735c8f9a8db28f920ddc269a86aaec")
+	  (hex-string->bytes #"105cece5569cda0b3e1a06dcf3d95c7559b1c942d5f8fe0270377500172d306d"
+			     #"cfdfa9d055a2f69b8828d7aca7bae0256d735c8f9a8db28f920ddc269a86aaec")))
 
 (check-equal? (crypto-sign #"Hello, world" sks)
-	      (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
-				 #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
-				 #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200C"))
+	      (hex-string->bytes #"3c1d5b10d8feef927e7633501a53e8ddc5dc4439055acea3"
+				 #"b96cf23b5c941540d50721dbae65cde0fadaefd26d924e25"
+				 #"b3d59116240119df18f96366e0a7760c48656c6c6f2c20776f726c64"))
 
 (check-equal? (crypto-sign-open
-	       (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
-				  #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
-				  #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200C")
+	       (hex-string->bytes #"3c1d5b10d8feef927e7633501a53e8ddc5dc4439055acea3"
+				  #"b96cf23b5c941540d50721dbae65cde0fadaefd26d924e25"
+				  #"b3d59116240119df18f96366e0a7760c48656c6c6f2c20776f726c64")
 	       pks)
 	      #"Hello, world")
 
 (check-exn (regexp "error from nacl primitive")
 	   (lambda ()
 	     (crypto-sign-open
-	      (hex-string->bytes #"94D049279FB8DA868EF08AC19F28A1FD67C0685BFFA9D58F"
-				 #"C4CA01B63624C48448656C6C6F2C20776F726C64D5F2744D"
-				 #"741D7425F5EFBF683324CCDF543FCE529B088D0DDCD0FD1809D7200D") ;; !
+	      (hex-string->bytes #"3c1d5b10d8feef927e7633501a53e8ddc5dc4439055acea3"
+				 #"b96cf23b5c941540d50721dbae65cde0fadaefd26d924e25"
+				 #"b3d59116240119df18f96366e0a7760c48656c6c6f2c20776f726c65") ;; !
 	      pks)))
 
 ;;---------------------------------------------------------------------------
@@ -134,9 +134,9 @@
 
 (let ((keys (bytes->crypto-sign-keypair #"This is my passphrase"))
       (signed-message (hex-string->bytes
-		       #"8ee674b6c6405f4179ddc6b2011ae2b1f5f165e70db2f162"
-		       #"7457558de04b98f848656c6c6f2c20776f726c64a09cdafd"
-		       #"a269298cb42398a48b559ed5db2dfc7f852ec9fa387bef7852d1ee0d")))
+		       #"dd13136c30516f8d6a679129e1b21cecd0d6c21e050f13a4"
+		       #"8468641565a3458e5390d83a301f9b5ba238097a7b443966"
+		       #"3c7f5fb34684e09801d25bd08439a70248656c6c6f2c20776f726c64")))
   (check-equal? (crypto-sign #"Hello, world" (crypto-sign-keypair-sk keys)) signed-message)
   (check-equal? (crypto-sign-open signed-message (crypto-sign-keypair-pk keys)) #"Hello, world"))
 

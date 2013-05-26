@@ -21,7 +21,7 @@
   (seed->crypto-sign-keypair seed))
 
 (define (seed->crypto-sign-keypair seed)
-  (check-length 'seed->crypto-sign-keypair "seed" seed (/ crypto_box_SECRETKEYBYTES 2))
+  (check-length 'seed->crypto-sign-keypair "seed" seed (/ crypto_sign_SECRETKEYBYTES 2))
   ;; Allocate space for public and private keys.
   (define pk (make-bytes crypto_sign_PUBLICKEYBYTES))
   (define sk (make-bytes crypto_sign_SECRETKEYBYTES))
