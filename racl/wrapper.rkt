@@ -234,12 +234,12 @@
 ;;---------------------------------------------------------------------------
 ;; Signing
 
-(define-nacl crypto_sign_edwards25519sha512batch_keypair
+(define-nacl crypto_sign_ed25519_keypair
   (_fun _bytes _bytes -> _int))
-(define-nacl crypto_sign_edwards25519sha512batch
+(define-nacl crypto_sign_ed25519
   (_fun _bytes (smlen : (_ptr o _uint64)) _bytes _uint64 _bytes -> (status : _int)
 	-> (values status smlen)))
-(define-nacl crypto_sign_edwards25519sha512batch_open
+(define-nacl crypto_sign_ed25519_open
   (_fun _bytes (mlen : (_ptr o _uint64)) _bytes _uint64 _bytes -> (status : _int)
 	-> (values status mlen)))
 

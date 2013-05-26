@@ -9,7 +9,7 @@
 
 (provide pre-installer)
 
-(define NACLVERSION "20110221")
+(define NACLVERSION "20110221+Ed25519-20130419")
 (define NACLUNPACKED (string-append "nacl-"NACLVERSION))
 
 (define (build-subnacl unpacked-path subnacl-path)
@@ -94,12 +94,13 @@
 	(with-output-to-include-file op_prim op_prim_h
 	  (lambda ()
 	    (for ([line (file->lines (build-path impldir "api.h"))])
-	      (define new-line (string-replace line "CRYPTO_" op_prim_))
-	      (displayln new-line)
-	      (push-sexpdef! (string-append (string-trim (string-replace new-line
-									 "#define"
-									 "(define-constant"))
-					    ")")))
+	      (when (positive? (string-length (string-trim line)))
+		(define new-line (string-replace line "CRYPTO_" op_prim_))
+		(displayln new-line)
+		(push-sexpdef! (string-append (string-trim (string-replace new-line
+									   "#define"
+									   "(define-constant"))
+					      ")"))))
 
 	    (for ([line (slurp "PROTOTYPES.c")]
 		  #:when (or (string-contains line (string-append op"("))
@@ -154,15 +155,13 @@
     (lambda ()
       (printf "extern void randombytes(unsigned char *, unsigned long long);\n")))
 
-  (with-output-to-include-file "crypto_uint32" "crypto_uint32.h"
-    (lambda ()
-      (printf "#include <stdint.h>\n")
-      (printf "typedef uint32_t crypto_uint32;\n")))
-
-  (with-output-to-include-file "crypto_uint64" "crypto_uint64.h"
-    (lambda ()
-      (printf "#include <stdint.h>\n")
-      (printf "typedef uint64_t crypto_uint64;\n")))
+  (for* ([intkind '("uint" "int")]
+	 [intsize '("32" "64")])
+    (define T (string-append intkind intsize))
+    (with-output-to-include-file (string-append "crypto_"T) (string-append "crypto_"T".h")
+      (lambda ()
+	(printf "#include <stdint.h>\n")
+	(printf "typedef ~a_t crypto_~a;\n" T T))))
 
   (make-directory* (build-path subnacl-path "randombytes"))
   (copy-file (build-path unpacked-path "randombytes" "devurandom.c")
