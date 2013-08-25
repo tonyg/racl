@@ -1,13 +1,11 @@
-COLLECTIONS=racl
-
 all: setup
 
 clean:
 	find . -name compiled -type d | xargs rm -rf
-	rm -rf racl/private/subnacl
+	rm -rf private/subnacl
 
 setup:
-	raco setup $(COLLECTIONS)
+	raco setup $$(basename $$(pwd))
 
 link:
 	raco pkg install --link $$(pwd)
