@@ -7,7 +7,8 @@
 
 (provide bytes->crypto-sign-keypair
 	 seed->crypto-sign-keypair
-	 bytes->crypto-box-keypair)
+	 bytes->crypto-box-keypair
+	 crypto-box-sk->pk)
 
 (define-nacl crypto_sign_keypair_from_raw_sk ;; defined in keys.c
   (_fun _bytes _bytes _bytes -> _int))
@@ -31,7 +32,10 @@
 (define (bytes->crypto-box-keypair bs)
   ;; Hash the bytes to get a secret key.
   (define sk (subbytes (crypto-hash-bytes bs) 0 crypto_box_SECRETKEYBYTES))
-  ;; Allocate space for a public key.
+  (crypto-box-keypair (crypto-box-sk->pk sk) sk))
+
+(define (crypto-box-sk->pk sk)
   (define pk (make-bytes crypto_box_PUBLICKEYBYTES))
+  (check-length 'crypto-box-sk->pk "sk" sk crypto_box_SECRETKEYBYTES)
   (check-result (crypto_scalarmult_curve25519_base pk sk))
-  (crypto-box-keypair pk sk))
+  pk)
