@@ -85,7 +85,7 @@
   (define c (make-zero-bytes (bytes-length m)))
   (check-nonce 'crypto-box nonce crypto_box_NONCEBYTES)
   (check-length 'crypto-box "pk" pk crypto_box_PUBLICKEYBYTES)
-  (check-length 'crypto-box "sk" sk crypto_box_PUBLICKEYBYTES)
+  (check-length 'crypto-box "sk" sk crypto_box_SECRETKEYBYTES)
   (check-result (crypto_box c m (bytes-length m) nonce pk sk))
   (subbytes c crypto_box_BOXZEROBYTES))
 
@@ -94,14 +94,14 @@
   (define m (make-zero-bytes (bytes-length c)))
   (check-nonce 'crypto-box-open nonce crypto_box_NONCEBYTES)
   (check-length 'crypto-box-open "pk" pk crypto_box_PUBLICKEYBYTES)
-  (check-length 'crypto-box-open "sk" sk crypto_box_PUBLICKEYBYTES)
+  (check-length 'crypto-box-open "sk" sk crypto_box_SECRETKEYBYTES)
   (check-result (crypto_box_open m c (bytes-length c) nonce pk sk))
   (subbytes m crypto_box_ZEROBYTES))
 
 (define (crypto-box-precompute pk sk)
   (define k (make-zero-bytes crypto_box_BEFORENMBYTES))
   (check-length 'crypto-box-precompute "pk" pk crypto_box_PUBLICKEYBYTES)
-  (check-length 'crypto-box-precompute "sk" sk crypto_box_PUBLICKEYBYTES)
+  (check-length 'crypto-box-precompute "sk" sk crypto_box_SECRETKEYBYTES)
   (check-result (crypto_box_beforenm k pk sk))
   (crypto-box-state k))
 
