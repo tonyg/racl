@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require openssl/sha1)
+(require (only-in openssl/sha1 sha1 bytes->hex-string))
 (require racket/match)
 (require "main.rkt")
 
