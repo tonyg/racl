@@ -1,8 +1,12 @@
 #lang racket/base
 
+(require (only-in racket/port with-output-to-bytes with-input-from-bytes))
+
 (provide (struct-out display-hint)
 	 write-spki-sexp
 	 read-spki-sexp
+	 spki-sexp->bytes
+	 bytes->spki-sexp
 	 spki-sexp-digit-limit
 	 spki-sexp-bytes-limit
 	 spki-sexp-list-limit)
@@ -104,11 +108,14 @@
 	(error 'read-spki-sexp "Syntax error: unexpected end-of-list")
 	v)))
 
+(define (spki-sexp->bytes s) (with-output-to-bytes (lambda () (write-spki-sexp s))))
+(define (bytes->spki-sexp bs) (with-input-from-bytes bs read-spki-sexp))
+
 (module+ test
   (require rackunit)
   (require (only-in racket/port with-output-to-string with-input-from-string))
-  (define (R s) (with-input-from-string s read-spki-sexp))
-  (define (W t) (with-output-to-string (lambda () (write-spki-sexp t))))
+  (define (R s) (bytes->spki-sexp (string->bytes/utf-8 s)))
+  (define (W t) (bytes->string/utf-8 (spki-sexp->bytes t)))
   (check-equal? (R "") eof)
   (check-equal? (R "(") eof)
   (check-equal? (R "()") '())
