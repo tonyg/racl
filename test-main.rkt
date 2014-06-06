@@ -167,6 +167,20 @@
   (check-equal? (crypto-box #"hello" nonce pk1 sk1) c)
   (check-equal? (crypto-box* #"hello" nonce k) c))
 
+(let ((nonce (hex-string->bytes #"065114ca5a687e0544a88e6fc757b30afc70a0355854fd54"))
+      (c0 (hex-string->bytes #"3bc95b7983622e8afb763723703e17c6739be9c316"))
+      (c1 (hex-string->bytes #"3bc95b7983622e0afb763723703e17c6739be9c316"))
+      (c2 (hex-string->bytes #"3bc95b7983622e8afb763723703e37c6739be9c316"))
+      (c3 (hex-string->bytes #"2bc95b7983622e8afb763723703e17c6739be9c316"))
+      (c4 (hex-string->bytes #"3bc95b7983622e8afb763723703e17c6739be9c317"))
+      (k (crypto-box-precompute pk1 sk1)))
+  (check-equal? (crypto-box-open c0 nonce pk1 sk1) #"hello")
+  (for-each (lambda (c)
+	      (check-exn #px"crypto_box_open: error from nacl primitive"
+			 (lambda ()
+			   (crypto-box-open c nonce pk1 sk1) #"hello")))
+	    (list c1 c2 c3 c4)))
+
 (define (round-trip msg)
   (define n (crypto-box-random-nonce))
   (define c (time (crypto-box msg n pk2 sk1)))
