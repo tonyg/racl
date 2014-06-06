@@ -6,6 +6,7 @@
 (require "ffi-lib.rkt")
 
 (provide random-bytes
+	 (struct-out exn:fail:contract:racl)
 
 	 (struct-out crypto-box-keypair)
 	 make-crypto-box-keypair
@@ -253,14 +254,18 @@
   (define sm (make-zero-bytes (+ (bytes-length msg) crypto_sign_BYTES)))
   (check-length 'crypto-sign "sk" sk crypto_sign_SECRETKEYBYTES)
   (define-values (status smlen) (crypto_sign sm msg (bytes-length msg) sk))
-  (when (not (zero? status)) (error 'crypto-sign "error from nacl primitive"))
+  (when (not (zero? status)) (raise (exn:fail:contract:racl
+				     "crypto-sign: error from nacl primitive"
+				     (current-continuation-marks))))
   (subbytes sm 0 smlen))
 
 (define (crypto-sign-open signed-msg pk)
   (define m (make-zero-bytes (bytes-length signed-msg)))
   (check-length 'crypto-sign "pk" pk crypto_sign_PUBLICKEYBYTES)
   (define-values (status mlen) (crypto_sign_open m signed-msg (bytes-length signed-msg) pk))
-  (when (not (zero? status)) (error 'crypto-sign-open "error from nacl primitive"))
+  (when (not (zero? status)) (raise (exn:fail:contract:racl
+				     "crypto-sign-open: error from nacl primitive"
+				     (current-continuation-marks))))
   (subbytes m 0 mlen))
 
 ;;---------------------------------------------------------------------------
@@ -293,7 +298,8 @@
 ;; TODO: provide all of these for real
 (define-syntax-rule (define-stub n v)
   (define (v . args)
-    (error 'v "Not implemented")))
+    (raise (exn:fail:contract:racl (format "~a: Not implemented" 'v)
+				   (current-continuation-marks)))))
 
 (define-stub crypto_hashblocks crypto_hashblocks_sha512) ;; No sensible way of using this yet
 

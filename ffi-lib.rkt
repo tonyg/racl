@@ -8,6 +8,7 @@
 (provide nacl-lib
 	 define-nacl
 
+	 (struct-out exn:fail:contract:racl)
 	 make-zero-bytes
 	 zero-pad-left
 	 check-result
@@ -32,6 +33,8 @@
 ;;---------------------------------------------------------------------------
 ;; Utilities
 
+(struct exn:fail:contract:racl exn:fail:contract () #:transparent)
+
 (define (make-zero-bytes n)
   (make-bytes n 0))
 
@@ -42,11 +45,14 @@
 
 (define-syntax-rule (check-result (f arg ...))
   (when (not (zero? (f arg ...)))
-    (error 'f "error from nacl primitive")))
+    (raise (exn:fail:contract:racl (format "~a: error from nacl primitive" 'f)
+				   (current-continuation-marks)))))
 
 (define (check-length f what thing expected-length)
   (when (not (= (bytes-length thing) expected-length))
-    (error f "expected ~a of length ~v, got length ~v" what expected-length (bytes-length thing))))
+    (raise (exn:fail:contract:racl (format "~a: expected ~a of length ~v, got length ~v"
+					   f what expected-length (bytes-length thing))
+				   (current-continuation-marks)))))
 
 (define (check-nonce f n expected-length)
   (check-length f "nonce" n expected-length))
