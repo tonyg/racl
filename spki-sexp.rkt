@@ -4,10 +4,12 @@
 	 write-spki-sexp
 	 read-spki-sexp
 	 spki-sexp-digit-limit
-	 spki-sexp-bytes-limit)
+	 spki-sexp-bytes-limit
+	 spki-sexp-list-limit)
 
 (define spki-sexp-digit-limit (make-parameter 10))
 (define spki-sexp-bytes-limit (make-parameter #f))
+(define spki-sexp-list-limit (make-parameter #f))
 
 (struct display-hint (hint body) #:prefab)
 
@@ -62,12 +64,15 @@
 	    (error 'read-spki-sexp "Syntax error: bad simple string length ~v" c)))))))
 
 (define (read-sexp-list p)
-  (let loop ((acc '()))
+  (define limit (spki-sexp-list-limit))
+  (let loop ((len 0) (acc '()))
+    (when (and limit (> len limit))
+      (error 'read-spki-sexp "Input rejected: list length exceeds limit ~v" limit))
     (let ((v (read-sexp-inner p)))
       (cond
        ((eof-object? v) v)
        ((eq? v 'end-of-list-marker) (reverse acc))
-       (else (loop (cons v acc)))))))
+       (else (loop (+ len 1) (cons v acc)))))))
 
 (define (read-sexp-inner p)
   (let ((b (read-byte p)))
@@ -157,4 +162,13 @@
 
   (check-exn #px"Bad SPKI SEXP 'x" (lambda () (W 'x)))
   (check-exn #px"Bad SPKI SEXP 123" (lambda () (W 123)))
+
+  (check-equal? (R "(0:0:0:0:)") (list #"" #"" #"" #""))
+  (check-equal? (parameterize ((spki-sexp-list-limit 6))
+		  (R "(0:0:0:0:)"))
+		(list #"" #"" #"" #""))
+  (check-exn #px"Input rejected: list length exceeds limit 2"
+	     (lambda ()
+	       (parameterize ((spki-sexp-list-limit 2))
+		 (R "(0:0:0:0:)"))))
   )
