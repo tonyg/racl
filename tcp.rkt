@@ -2,6 +2,7 @@
 
 (require racket/set)
 (require racket/tcp)
+(require "session.rkt")
 (require "port.rkt")
 
 (provide encrypted-tcp-accept
@@ -18,8 +19,10 @@
 	 #:validate-peer-identity [validate-peer-identity (check-peer trusted-peers)]
 	 listener)
   (define-values (i o) (tcp-accept listener))
-  (start-encrypted-session i o local-identity validate-peer-identity
-			   #:certificates local-certificates))
+  (encrypt-ports i o
+		 (lambda ()
+		   (start-encrypted-session local-identity validate-peer-identity
+					    #:certificates local-certificates))))
 
 (define (encrypted-tcp-connect
 	 #:local-identity [local-identity anonymous-keypair]
@@ -28,5 +31,7 @@
 	 #:validate-peer-identity [validate-peer-identity (check-peer trusted-peers)]
 	 . args)
   (define-values (i o) (apply tcp-connect args))
-  (start-encrypted-session i o local-identity validate-peer-identity
-			   #:certificates local-certificates))
+  (encrypt-ports i o
+		 (lambda ()
+		   (start-encrypted-session local-identity validate-peer-identity
+					    #:certificates local-certificates))))
