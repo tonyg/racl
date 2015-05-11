@@ -13,7 +13,7 @@
       (not (set-empty? (set-intersect trusted-peers peer-root-pks)))))
 
 (define (encrypted-tcp-accept
-	 #:local-identity [local-identity anonymous-keypair]
+	 #:local-identity [local-identity anonymous-identity]
 	 #:local-certificates [local-certificates '()]
 	 #:trusted-peers [trusted-peers #t]
 	 #:validate-peer-identity [validate-peer-identity (check-peer trusted-peers)]
@@ -25,7 +25,7 @@
 					    #:certificates local-certificates))))
 
 (define (encrypted-tcp-connect
-	 #:local-identity [local-identity anonymous-keypair]
+	 #:local-identity [local-identity anonymous-identity]
 	 #:local-certificates [local-certificates '()]
 	 #:trusted-peers [trusted-peers #t]
 	 #:validate-peer-identity [validate-peer-identity (check-peer trusted-peers)]

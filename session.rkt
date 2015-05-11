@@ -3,8 +3,8 @@
 (provide (struct-out exn:fail:contract:racl:session)
 
 	 (struct-out certificate)
-	 anonymous-keypair
-	 anonymous-public-key?
+         anonymous-identity
+         anonymous-public-key?
 	 make-certificate
 	 certificate-subject-pk
 	 certificate->spki-sexp
@@ -38,62 +38,52 @@
 
 ;; A Certificate is a signed statement from some *issuer* vouching for
 ;; the ability of some *subject* to access a service, represented as a
-;; (certificate PublicKey Nonce (Boxof PublicKey)), where the box is
-;; encrypted by the issuer for the anonymous key and contains the
-;; public-key of the subject.
+;; (certificate IssuerPublicKey (SignedMessageOf SubjectPublicKey)),
+;; where all keys are signing keys.
 ;;
 ;; Certificates are intended to be chainable: if A grants B access,
 ;; and B grants C access, and A primitively has access, then C will be
 ;; allowed access when the certificate chain is checked.
-(struct certificate (issuer-pk box-nonce subject-box) #:transparent)
+(struct certificate (issuer-pk signed-subject-pk) #:transparent)
 
-;; The anonymous keypair is simply the keypair derived from the empty byte-string.
-;; public-key: 20d2d5a2cdd64d78eeb5437b33d1cb848204f5f3a4665eb5e55e6623387a8667
-;; secret-key: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce
-(define anonymous-keypair (bytes->crypto-box-keypair #""))
-(define anonymous-pk (crypto-box-keypair-pk anonymous-keypair))
-(define anonymous-sk (crypto-box-keypair-sk anonymous-keypair))
-(define (anonymous-public-key? pk) (equal? pk anonymous-pk))
+;; The anonymous identity is simply the signing keypair derived from the empty byte-string.
+;; public-key: d41e8112c41813374a6cad838c21b1b409abd059ef63a46fc660c922a40a364f
+;; secret-key: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ced41e8112c41813374a6cad838c21b1b409abd059ef63a46fc660c922a40a364f
+(define anonymous-identity (bytes->crypto-sign-keypair #""))
+(define (anonymous-public-key? pk) (equal? pk (crypto-sign-keypair-pk anonymous-identity)))
 
 ;; Constructs a certificate stating that an issuer grants access to
 ;; some service to a subject.
 (define (make-certificate issuer-keypair subject-pk)
-  (define-values (n box)
-    (nonce-and-box subject-pk
-		   (crypto-box-precompute anonymous-pk (crypto-box-keypair-sk issuer-keypair))))
-  (certificate (crypto-box-keypair-pk issuer-keypair) n box))
+  (certificate (crypto-sign-keypair-pk issuer-keypair)
+               (crypto-sign subject-pk (crypto-sign-keypair-sk issuer-keypair))))
 
 ;; Extracts the subject public-key contained in a certificate. If the
 ;; certificate is invalid or corrupt, returns #f. Only returns non-#f
 ;; when the certificate is valid.
 (define (certificate-subject-pk c)
   (with-handlers [(exn:fail:contract:racl? (lambda (e) #f))]
-    (crypto-box-open (certificate-subject-box c)
-		     (certificate-box-nonce c)
-		     (certificate-issuer-pk c)
-		     anonymous-sk)))
+    (crypto-sign-open (certificate-signed-subject-pk c)
+                      (certificate-issuer-pk c))))
 
 ;; Syntax checks on public-keys and box-nonces. TODO: move to main.rkt?
-(define (valid-pk? bs) (and (bytes? bs) (= (bytes-length bs) crypto_box_PUBLICKEYBYTES)))
+(define (valid-sign-pk? bs) (and (bytes? bs) (= (bytes-length bs) crypto_sign_PUBLICKEYBYTES)))
+(define (valid-box-pk? bs) (and (bytes? bs) (= (bytes-length bs) crypto_box_PUBLICKEYBYTES)))
 (define (valid-nonce? bs) (and (bytes? bs) (= (bytes-length bs) crypto_box_NONCEBYTES)))
 
 ;; Serialize a certificate.
 (define (certificate->spki-sexp c)
   `(#"certificate"
     (#"issuer" ,(certificate-issuer-pk c))
-    (#"subject-box"
-     ,(certificate-box-nonce c)
-     ,(certificate-subject-box c))))
+    (#"signed-subject-pk" ,(certificate-signed-subject-pk c))))
 
 ;; Deserialize a certificate.
 (define (spki-sexp->certificate s)
   (match s
     [`(#"certificate"
-       (#"issuer" ,(? valid-pk? issuer-pk))
-       (#"subject-box"
-	,(? valid-nonce? box-nonce)
-	,(? bytes? subject-box)))
-     (certificate issuer-pk box-nonce subject-box)]
+       (#"issuer" ,(? valid-sign-pk? issuer-pk))
+       (#"signed-subject-pk" ,(? bytes? signed-subject-pk)))
+     (certificate issuer-pk signed-subject-pk)]
     [_ #f]))
 
 ;; PublicKey (Listof Certificate) (PublicKey (Setof PublicKey) -> Boolean) -> Void
@@ -168,7 +158,7 @@
 (struct sexp-from-peer (s) #:prefab)
 (struct sexp-to-peer (s) #:prefab)
 
-;; [BoxKeypair [(PublicKey (Setof PublicKey) -> Boolean)]]
+;; [SignKeypair [(SignPublicKey (Setof SignPublicKey) -> Boolean)]]
 ;;    [#:certificates (Listof Certificate)]
 ;; -> (Values (Sexp -> Void)        ;; send sexp to peer
 ;;            (Sexp -> Void)        ;; handle network packets
@@ -196,7 +186,7 @@
 ;; To close down the session, pass #f into either of the functions
 ;; returned from start-encrypted-session.
 ;;
-(define (start-encrypted-session [my-identity anonymous-keypair]
+(define (start-encrypted-session [my-identity anonymous-identity]
 				 [check-their-identity (lambda (pk pks) #t)]
 				 #:certificates [my-certificates '()])
   (define reply-ch (make-async-channel))
@@ -235,8 +225,8 @@
       [(cons 'network s)
        (match s
 	 [`(#"nacl"
-	    (#"version" #"0")
-	    (#"pk" ,(? valid-pk? peer-identity-pk))
+	    (#"version" #"1")
+	    (#"pk" ,(? valid-sign-pk? peer-identity-pk))
 	    (#"certificates" ,cert-sexp ...))
 	  (define peer-certificates
 	    (for/list [(c cert-sexp)]
@@ -249,10 +239,8 @@
 
   (define (exchange-keys buffered-user-sexps-rev peer-identity-pk)
     (define my-session-keys (make-crypto-box-keypair))
-    (send-to-peer! (encipher-sexp
-		    `(#"newkey" ,(crypto-box-keypair-pk my-session-keys))
-		    (crypto-box-precompute peer-identity-pk
-					   (crypto-box-keypair-sk my-identity))))
+    (send-to-peer! `(#"newkey" ,(crypto-sign (crypto-box-keypair-pk my-session-keys)
+                                             (crypto-sign-keypair-sk my-identity))))
     (wait-for-newkey buffered-user-sexps-rev peer-identity-pk my-session-keys))
 
   (define (wait-for-newkey buffered-user-sexps-rev peer-identity-pk my-session-keys)
@@ -262,24 +250,22 @@
 				       peer-identity-pk
 				       my-session-keys)]
       [(cons 'network s)
-       (match (decipher-sexp s (crypto-box-precompute peer-identity-pk
-						      (crypto-box-keypair-sk my-identity)))
-	 [`(#"newkey" ,(? valid-pk? peer-session-pk))
+       (match s
+	 [`(#"newkey" ,(? bytes? signed-peer-session-pk))
+          (define peer-session-pk (crypto-sign-open signed-peer-session-pk peer-identity-pk))
+          (when (not (valid-box-pk? peer-session-pk))
+            (fail "start-encrypted-session: Invalid peer session key after signature validation"))
 	  (define precomputed-crypto-box-state
 	    (crypto-box-precompute peer-session-pk (crypto-box-keypair-sk my-session-keys)))
 	  (send-buffered-sexps (reverse buffered-user-sexps-rev)
 			       peer-identity-pk
 			       precomputed-crypto-box-state)]
-	 [_ (fail "start-encrypted-session: Invalid peer session key")])]
+	 [_ (fail "start-encrypted-session: Invalid peer session key packet")])]
       [x (fail "start-encrypted-session: Internal error: received unknown command ~a" x)]))
 
   (define (send-buffered-sexps buf peer-identity-pk precomputed-crypto-box-state)
-    (match buf
-      ['()
-       (main-session-loop peer-identity-pk precomputed-crypto-box-state)]
-      [(cons s rest)
-       (send-to-peer! (encipher-sexp s precomputed-crypto-box-state))
-       (send-buffered-sexps rest peer-identity-pk precomputed-crypto-box-state)]))
+    (for-each (lambda (s) (send-to-peer! (encipher-sexp s precomputed-crypto-box-state))) buf)
+    (main-session-loop peer-identity-pk precomputed-crypto-box-state))
 
   (define (main-session-loop peer-identity-pk precomputed-crypto-box-state)
     (match (thread-receive)
@@ -295,8 +281,8 @@
   ;; Enter state machine
 
   (send-to-peer! `(#"nacl"
-		   (#"version" #"0")
-		   (#"pk" ,(crypto-box-keypair-pk my-identity))
+		   (#"version" #"1")
+		   (#"pk" ,(crypto-sign-keypair-pk my-identity))
 		   ,(cons #"certificates"
 			  (map certificate->spki-sexp my-certificates))))
 
@@ -354,17 +340,17 @@
 	      (close-output-port w2)))
     (values r2 w1))
 
-  (define a-kp (bytes->crypto-box-keypair #"a"))
-  (define b-kp (bytes->crypto-box-keypair #"b"))
-  (define c-kp (bytes->crypto-box-keypair #"c"))
+  (define a-kp (bytes->crypto-sign-keypair #"a"))
+  (define b-kp (bytes->crypto-sign-keypair #"b"))
+  (define c-kp (bytes->crypto-sign-keypair #"c"))
 
-  (define c-trusts-a (make-certificate c-kp (crypto-box-keypair-pk a-kp)))
-  (define c-trusts-b (make-certificate c-kp (crypto-box-keypair-pk b-kp)))
+  (define c-trusts-a (make-certificate c-kp (crypto-sign-keypair-pk a-kp)))
+  (define c-trusts-b (make-certificate c-kp (crypto-sign-keypair-pk b-kp)))
 
-  (log-info "c's pk is ~v" (crypto-box-keypair-pk c-kp))
+  (log-info "c's pk is ~v" (crypto-sign-keypair-pk c-kp))
   (define (trusted-by-c? pk pks)
     (log-info "trusted-by-c?: trust ~v if we trust any of ~v" pk pks)
-    (set-member? pks (crypto-box-keypair-pk c-kp)))
+    (set-member? pks (crypto-sign-keypair-pk c-kp)))
 
   (define-values (a->b handle-b->a-packet a-evt)
     (start-encrypted-session a-kp trusted-by-c?

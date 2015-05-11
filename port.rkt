@@ -126,17 +126,17 @@
 	      (close-output-port w2)))
     (values r2 w1))
 
-  (define a-kp (bytes->crypto-box-keypair #"a"))
-  (define b-kp (bytes->crypto-box-keypair #"b"))
-  (define c-kp (bytes->crypto-box-keypair #"c"))
+  (define a-kp (bytes->crypto-sign-keypair #"a"))
+  (define b-kp (bytes->crypto-sign-keypair #"b"))
+  (define c-kp (bytes->crypto-sign-keypair #"c"))
 
-  (define c-trusts-a (make-certificate c-kp (crypto-box-keypair-pk a-kp)))
-  (define c-trusts-b (make-certificate c-kp (crypto-box-keypair-pk b-kp)))
+  (define c-trusts-a (make-certificate c-kp (crypto-sign-keypair-pk a-kp)))
+  (define c-trusts-b (make-certificate c-kp (crypto-sign-keypair-pk b-kp)))
 
-  (log-info "c's pk is ~v" (crypto-box-keypair-pk c-kp))
+  (log-info "c's pk is ~v" (crypto-sign-keypair-pk c-kp))
   (define (trusted-by-c? pk pks)
     (log-info "trusted-by-c?: trust ~v if we trust any of ~v" pk pks)
-    (set-member? pks (crypto-box-keypair-pk c-kp)))
+    (set-member? pks (crypto-sign-keypair-pk c-kp)))
 
   (define-values (raw-a->b-source raw-a->b-sink) (make-logging-pipe "a->b"))
   (define-values (raw-b->a-source raw-b->a-sink) (make-logging-pipe "b->a"))
