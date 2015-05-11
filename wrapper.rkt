@@ -43,7 +43,7 @@
 	 crypto-sign-open)
 
 (struct crypto-box-keypair (pk sk) #:prefab)
-(struct crypto-box-state (k)) ;; not even transparent
+(struct crypto-box-state (k) #:prefab)
 
 (struct crypto-sign-keypair (pk sk) #:prefab)
 
