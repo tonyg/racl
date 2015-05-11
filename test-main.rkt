@@ -152,13 +152,6 @@
 
 (match-define (crypto-box-keypair pk2 sk2) (make-crypto-box-keypair))
 
-(match-define (crypto-box-keypair pk-anon sk-anon)
-  (bytes->crypto-box-keypair #""))
-
-(write `((pk-anon ,(bytes->hex-string pk-anon))
-	 (sk-anon ,(bytes->hex-string sk-anon))))
-(newline)
-
 (let ((nonce (hex-string->bytes #"065114ca5a687e0544a88e6fc757b30afc70a0355854fd54"))
       (c (hex-string->bytes #"3bc95b7983622e8afb763723703e17c6739be9c316"))
       (k (crypto-box-precompute pk1 sk1)))
@@ -166,6 +159,16 @@
   (check-equal? (crypto-box-open* c nonce k) #"hello")
   (check-equal? (crypto-box #"hello" nonce pk1 sk1) c)
   (check-equal? (crypto-box* #"hello" nonce k) c))
+
+(check-equal? (crypto-box-precompute pk1 sk2)
+              (crypto-box-precompute pk2 sk1))
+
+(let ((nonce (crypto-box-random-nonce))
+      (m #"hello"))
+  (check-equal? (crypto-box m nonce pk2 sk1)
+                (crypto-box m nonce pk1 sk2))
+  (check-equal? (crypto-box-open (crypto-box m nonce pk2 sk1) nonce pk1 sk2) m)
+  (check-equal? (crypto-box-open (crypto-box m nonce pk2 sk1) nonce pk2 sk1) m))
 
 (let ((nonce (hex-string->bytes #"065114ca5a687e0544a88e6fc757b30afc70a0355854fd54"))
       (c0 (hex-string->bytes #"3bc95b7983622e8afb763723703e17c6739be9c316"))
