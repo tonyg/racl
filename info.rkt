@@ -14,3 +14,6 @@
 (define pre-install-collection "private/install.rkt")
 (define compile-omit-files '("private/install.rkt"
 			     "private/subnacl/sexpdefs.ss"))
+
+(define deps '("base" "dynext-lib" "sandbox-lib"))
+(define build-deps '("rackunit-lib"))
