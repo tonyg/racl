@@ -44,7 +44,7 @@
 ;; Certificates are intended to be chainable: if A grants B access,
 ;; and B grants C access, and A primitively has access, then C will be
 ;; allowed access when the certificate chain is checked.
-(struct certificate (issuer-pk signed-subject-pk) #:transparent)
+(struct certificate (issuer-pk signed-claim) #:transparent)
 
 ;; The anonymous identity is simply the signing keypair derived from the empty byte-string.
 ;; public-key: d41e8112c41813374a6cad838c21b1b409abd059ef63a46fc660c922a40a364f
@@ -52,19 +52,32 @@
 (define anonymous-identity (bytes->crypto-sign-keypair #""))
 (define (anonymous-public-key? pk) (equal? pk (crypto-sign-keypair-pk anonymous-identity)))
 
+;; Signs some spki-sexp, attaching a description of what the signer
+;; believes it is signing, to help avoid abuse of signed data from one
+;; context in another.
+(define (sign-spki-sexp s description signing-sk)
+  (crypto-sign (spki-sexp->bytes (list description s)) signing-sk))
+
+;; Authenticates some signed spki-sexp, checking the attached
+;; description, and returning the authenticated value.
+(define ((authenticate-spki-sexp description signing-pk) bs)
+  (match (with-handlers [(exn:fail:contract:racl? (lambda (e) #f))]
+           (bytes->spki-sexp (crypto-sign-open bs signing-pk)))
+    [(list (== description) s) s]
+    [_ #f]))
+
 ;; Constructs a certificate stating that an issuer grants access to
 ;; some service to a subject.
 (define (make-certificate issuer-keypair subject-pk)
   (certificate (crypto-sign-keypair-pk issuer-keypair)
-               (crypto-sign subject-pk (crypto-sign-keypair-sk issuer-keypair))))
+               (sign-spki-sexp subject-pk #"subject" (crypto-sign-keypair-sk issuer-keypair))))
 
 ;; Extracts the subject public-key contained in a certificate. If the
 ;; certificate is invalid or corrupt, returns #f. Only returns non-#f
 ;; when the certificate is valid.
 (define (certificate-subject-pk c)
-  (with-handlers [(exn:fail:contract:racl? (lambda (e) #f))]
-    (crypto-sign-open (certificate-signed-subject-pk c)
-                      (certificate-issuer-pk c))))
+  ((authenticate-spki-sexp #"subject" (certificate-issuer-pk c))
+   (certificate-signed-claim c)))
 
 ;; Syntax checks on public-keys and box-nonces. TODO: move to main.rkt?
 (define (valid-sign-pk? bs) (and (bytes? bs) (= (bytes-length bs) crypto_sign_PUBLICKEYBYTES)))
@@ -75,15 +88,15 @@
 (define (certificate->spki-sexp c)
   `(#"certificate"
     (#"issuer" ,(certificate-issuer-pk c))
-    (#"signed-subject-pk" ,(certificate-signed-subject-pk c))))
+    (#"signed-claim" ,(certificate-signed-claim c))))
 
 ;; Deserialize a certificate.
 (define (spki-sexp->certificate s)
   (match s
     [`(#"certificate"
        (#"issuer" ,(? valid-sign-pk? issuer-pk))
-       (#"signed-subject-pk" ,(? bytes? signed-subject-pk)))
-     (certificate issuer-pk signed-subject-pk)]
+       (#"signed-claim" ,(? bytes? signed-claim)))
+     (certificate issuer-pk signed-claim)]
     [_ #f]))
 
 ;; PublicKey (Listof Certificate) (PublicKey (Setof PublicKey) -> Boolean) -> Void
@@ -239,8 +252,10 @@
 
   (define (exchange-keys buffered-user-sexps-rev peer-identity-pk)
     (define my-session-keys (make-crypto-box-keypair))
-    (send-to-peer! `(#"newkey" ,(crypto-sign (crypto-box-keypair-pk my-session-keys)
-                                             (crypto-sign-keypair-sk my-identity))))
+    (send-to-peer! `(#"newkey"
+                      ,(sign-spki-sexp (crypto-box-keypair-pk my-session-keys)
+                                       #"sessionkey"
+                                       (crypto-sign-keypair-sk my-identity))))
     (wait-for-newkey buffered-user-sexps-rev peer-identity-pk my-session-keys))
 
   (define (wait-for-newkey buffered-user-sexps-rev peer-identity-pk my-session-keys)
@@ -251,10 +266,8 @@
 				       my-session-keys)]
       [(cons 'network s)
        (match s
-	 [`(#"newkey" ,(? bytes? signed-peer-session-pk))
-          (define peer-session-pk (crypto-sign-open signed-peer-session-pk peer-identity-pk))
-          (when (not (valid-box-pk? peer-session-pk))
-            (fail "start-encrypted-session: Invalid peer session key after signature validation"))
+         [`(#"newkey" ,(app (authenticate-spki-sexp #"sessionkey" peer-identity-pk)
+                            (? valid-box-pk? peer-session-pk)))
 	  (define precomputed-crypto-box-state
 	    (crypto-box-precompute peer-session-pk (crypto-box-keypair-sk my-session-keys)))
 	  (send-buffered-sexps (reverse buffered-user-sexps-rev)
