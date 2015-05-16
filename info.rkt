@@ -15,4 +15,5 @@
 (define compile-omit-files '("private/install.rkt"
 			     "private/subnacl/sexpdefs.ss"))
 
-(define deps '("base" "dynext-lib" "sandbox-lib" "rackunit-lib"))
+(define deps '("srfi-lite-lib"
+               "base" "dynext-lib" "sandbox-lib" "rackunit-lib"))
