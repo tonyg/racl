@@ -5,7 +5,7 @@
 (require dynext/file)
 (require dynext/link)
 (require (only-in srfi/13 string-prefix? string-suffix-ci? string-contains))
-(require racket/string)
+(require (only-in racket/string string-trim string-replace))
 
 (provide pre-installer)
 
