@@ -149,7 +149,7 @@
   (push-sexpdef! (format "(define-nacl-version ~s)"
 			 (string-trim (file->string (build-path unpacked-path "version")))))
   (display-lines-to-file (reverse sexpdefs)
-			 (build-path subnacl-path "sexpdefs.ss"))
+			 (build-path subnacl-path "sexpdefs"))
 
   (with-output-to-include-file "randombytes" "randombytes.h"
     (lambda ()

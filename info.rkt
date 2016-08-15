@@ -12,8 +12,7 @@
 (define repositories '("4.x"))
 
 (define pre-install-collection "private/install.rkt")
-(define compile-omit-files '("private/install.rkt"
-			     "private/subnacl/sexpdefs.ss"))
+(define compile-omit-files '("private/install.rkt"))
 
 (define deps '("srfi-lite-lib"
                "base" "dynext-lib" "sandbox-lib" "rackunit-lib"))
