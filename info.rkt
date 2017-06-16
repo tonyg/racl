@@ -16,3 +16,5 @@
 
 (define deps '("srfi-lite-lib"
                "base" "dynext-lib" "sandbox-lib" "rackunit-lib"))
+
+(define scribblings '(("scribblings/racl.scrbl" ())))
